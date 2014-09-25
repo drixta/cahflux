@@ -5,8 +5,9 @@ var router = express.Router();
 var http = require('http').createServer(app);
 var io = require('socket.io').listen(http);
 var util = require('./utils/utils');
+var userlist = {};
+
 app.use(express.static(__dirname + '/dist'));
-userlist = {};
 io.sockets.on('connection', function(socket){
 	var address = socket.handshake.address;
 	console.log('New connection from ' + address + ':' + address.port);
