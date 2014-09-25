@@ -8,4 +8,5 @@ node_modules
 #Distribution
 dist
 
-# Ignore files compiled by grunt
+#Todo
+todo
