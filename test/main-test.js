@@ -21,13 +21,18 @@ describe("CAH User",function(){
 		var client1 = io.connect(SOCKET_URL,options);
 		client1.on('connect', function(data){
 			client1.emit('create user', user1.name);
-			client1.on('user list', function(users){
-				users.should.have.property(user1.name);
+			client1.on('lobby user list', function(users){
+				users.should.include(user1.name);
+			});	
+			client1.emit('join room', user1.room);
+			client1.on('room user list', function(users){
+				users.should.include(user1.name);
+				client1.disconnect();
 				done();
 			});
 		});
-		client1.disconnect();
 	});
+
 	it('Should be able to broadcast new user to the room', function(done){
 		var client1 = io.connect(SOCKET_URL, options);
 		client1.on('connect', function(data){
@@ -37,11 +42,12 @@ describe("CAH User",function(){
 			client2.on('connect', function(data){
 				client2.emit('create user', user2.name);
 				client2.emit('join room', user2.room);
-			});
-			client1.on('user list', function(users){
-				users.should.have.property(user2.name);
-				client1.disconnect();
-				client2.disconnect();
+				client2.on('room user list', function(users){
+					users.should.include(user2.name);
+					client1.disconnect();
+					client2.disconnect();
+					done();
+				});
 			});
 		});
 	});
@@ -51,42 +57,24 @@ describe("CAH User",function(){
 			client1.emit('create user', user1.name);
 			client1.emit('join room', user1.room);
 
-			client1.on('user list', function(users){
+			client1.on('room user list', function(users){
 
-				users.should.have.property(user1.name);
+				users.should.include(user1.name);
 				client1.emit('leave room', user1.room);
 
-				client1.on('user list', function(users){
+				client1.on('lobby user list', function(users){
 
-					users.should.not.have.property(user1.name);
+					users.should.include(user1.name);
 					client1.emit('join room', user1.room);
 
-					client1.on('user list', function(users){
-						users.should.have.property(user1.name);
+					client1.on('room user list', function(users){
+						users.should.include(user1.name);
 						client1.disconnect();
+						done();
 					});
 				});
 			});
 		});
 	});
-
-	it('Should be able to get room information when enter a new room', function(done){
-	});
-	it('Should be able to change their name', function(done){
-		var client1 = io.connect(SOCKET_URL, options);
-		client1.on('connect', function(data){
-			client1.emit('create user', user1.name);
-			client1.emit('join room', user1.room);
-			client1.emit('change name', 'John');
-			client1.emit('leave room', user1.room);
-			client1.on('user list', function(users) {
-				users.should.not.have.property('John');
-				client1.emit('change name', 'John');
-				client1.emit('join room', user1.room);
-				client1.on('user list', function(users) {
-					users.should.have.property('John');
-				});
-			});
-		});
-	});
+	it('Should be able to get room information when enter a new room');
 });
