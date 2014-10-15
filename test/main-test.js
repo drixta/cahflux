@@ -78,3 +78,10 @@ describe("CAH User",function(){
 	});
 	it('Should be able to get room information when enter a new room');
 });
+
+describe("Game play test",function(){
+	it('Should be waiting if there\'s not enough people in the room');
+	it('Should not be able to select a card when there\'s not enough people in the room');
+	it('Should have a B person selected when there are enough people in the room');
+	it('Should be waiting for W players to play their cards when B card is shown');
+});
