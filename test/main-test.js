@@ -20,10 +20,14 @@ describe("CAH User",function(){
 		var client1 = io.connect(SOCKET_URL, options);
 		client1.on('connect', function(data){
 			client1.emit('init user', user1.name);
-			client1.on('init user success', function(users){
-				setTimeout(function(){users.should.include(user1.name)},200);
-				done();
-			});
+			setTimeout(function(){
+				client1.emit('get room', 'cah-lobby');
+				client1.on('room response', function(res){
+					console.log(res);
+					res.should.include(user1.name);
+					done();
+				});
+			},200);
 		});
 	});
 

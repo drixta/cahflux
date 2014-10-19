@@ -41,7 +41,7 @@ CahRedis.prototype.createRoom = function(name, callback) {
 		QCards: [],
 		used_cards: [],
 		state: 0,
-		count_down: null,
+		count_down: undefined,
 		ready_count: 0
 	};
 	defaultRoom = JSON.stringify(defaultRoom);
@@ -57,11 +57,10 @@ CahRedis.prototype.addUserToLobby = function(room, id, name){
 		if (err) {
 			throw err;
 		}
-		if (res[id] === null || 'undefined' === typeof res[id]) {
-			res[id] = name;
+		if (res.users[id] === null || 'undefined' === typeof res.users[id]) {
+			res.users[id] = name;
 			result = JSON.stringify(res);
 			self.client.hset('rooms', 'cah-lobby', result, function(err,res){
-				console.log('adding user to lobby');
 				standardCallback(err,res);
 			});
 		}
@@ -87,7 +86,6 @@ CahRedis.prototype.getUser = function(id,callback){
 CahRedis.prototype.initUser = function(user, callback){
 	var req = {
 		name: user.name,
-		room: 'cah-lobby'
 	};
 	this.client.hset('users', user.id, JSON.stringify(req), function(err, res){
 		standardCallback(err, res);
@@ -96,12 +94,40 @@ CahRedis.prototype.initUser = function(user, callback){
 };
 
 CahRedis.prototype.joinRoom = function(user, room) {
+	var self = this;
 	this.getRoom(room, function(err, res){
-		if (res) {
-			this.client.hset('rooms');
+		var response = JSON.parse(res);
+		if (response) {
+			response.users[user.id] = user.name;
+			self.client.hset('rooms', room, JSON.stringify(response), standardCallback);
 		}
 		else {
-			this.createRoom(room);
+			self.createRoom(room, function(err, res){
+				response.users[user.id] = user.name;
+				self.client.hset('rooms', room, JSON.stringify(response), standardCallback);
+			});
+		}
+	});
+};
+
+CahRedis.prototype.leaveRoom = function(user,room) {
+	var self = this;
+	this.getRoom(room, function(err, res){
+		var response = JSON.parse(res);
+		var count = 0;
+		if (response && response.users[user.id]) {
+			response.users[user.id] = undefined;
+		}
+		for (var i in response.users) {
+			if(response.users[i]) {
+				count++;
+			}
+		}
+		if (count === 0 && room !== 'cah-lobby') {
+			self.hdel('rooms', room, standardCallback);
+		}
+		else {
+			self.hset('rooms', room, JSON.stringify(response), standardCallback);
 		}
 	});
 };

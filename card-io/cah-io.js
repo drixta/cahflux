@@ -29,11 +29,10 @@ const cardsdb = require('../utils/cardsdb');
 			}
 		}
 
-	data structure
+	schema
 	users : {
 		1: {
 			name : '',
-			room: '',
 			bcard: [], //exist when users is not in lobby
 			
 		}
@@ -77,30 +76,35 @@ var User = function(socket, io){
 	var address = socket.handshake.address;
 	console.log('New connection from ' + address + ':' + socket.id);
 	this.socket.on('disconnect', this.disconnect);
+	this.socket.on('get room', this.getRoom);
 	this.socket.on('init user', this.initUser);
 	this.socket.on('change name', this.changeName);
 	this.socket.on('join room', this.joinRoom);
 	this.socket.on('leave room', this.leaveRoom);
+	this.socket.on('room info', this.getRoom);
+};
+
+User.prototype.getRoom = function(name){
+	var self = this;
+	var promise;
+	var result;
+	redis.getRoom(name, function(err, res){
+		result = utils.convertObjectNameToArray(res.users);
+		self.emit('room response', result);
+	});
 };
 
 User.prototype.initUser = function(name){
 	var self = this;
-	this.name = name;
 	this.join('cah-lobby');
 	redis.initUser({
 		id: this.id,
-		name: this.name,
+		name: name,
 	});
-	setTimeout(function(){
-		redis.getRoom('cah-lobby', function(err,res){
-		console.log('getting Room', res);
-		self.emit('init user success', utils.convertObjectNameToArray(res));
-	})},200);
 };
 
 User.prototype.joinRoom = function(name) {
-	var socket = this.socket;
-	socket.join(name);
+	this.join(name);
 	//TOTOTOTDO
 };
 
@@ -116,7 +120,7 @@ User.prototype.disconnect = function(){
 
 };
 
-function joinRoom(room){
+/*function joinRoom(room){
 	if (rooms.hasOwnProperty(room)){
 		if (rooms[room].users.hasOwnProperty(this.name)){
 			throw new Error('User with this name already exist in this room:' + this.name);
@@ -199,5 +203,5 @@ function disconnect(){
 		throw new Error('This user doesn\'t have a room');
 	}
 	console.log(this.name + ' has disconnected and left room:' + this.room);
-}
+}*/
 module.exports = CahIo;

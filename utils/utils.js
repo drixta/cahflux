@@ -11,7 +11,6 @@ module.exports = {
     },
     convertObjectNameToArray: function(obj) {
         var result = [];
-        console.log(obj);
         for (var key in obj) {
             result.push(obj[key]);
         }
