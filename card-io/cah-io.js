@@ -1,6 +1,5 @@
 const utils = require('../utils/utils');
 const cardsdb = require('../utils/cardsdb');
-var redis = require('./cah-redis.js');
 /*
 	STATUS
 	Wait for at least 4 players -> choose B players -> B player draws a black card -> W players put in cards within 30 seconds
@@ -50,50 +49,72 @@ var redis = require('./cah-redis.js');
 			readyCount: null
 		}
 		cah-lobby: {
-			users: ['id1','id2','id3']
+			users: {'id1': true,'id2': true,'id3': true}
 		}
 	}
 */
-
+var redis;
 var CahIo = function(options){
-	var self = this;
-	self.io = options.io;
+	this.io = options.io;
 	redis = options.redis;
 };
 
 CahIo.prototype.init = function(){
+	var self = this;
 	this.io.on('connection',function(socket){
-		this.main(socket);
+		self.main(socket);
 	});
 };
 
 CahIo.prototype.main = function(socket){
-	var address = socket.handshake.address;
-	console.log('New connection from ' + address + ':' + socket.id);
-	socket.on('create user', createUser.bind(socket));
-	socket.on('join room', joinRoom.bind(socket));
-	socket.on('leave room', leaveRoom.bind(socket));
-	socket.on('disconnect', disconnect.bind(socket));
-	socket.on('change name', changeName.bind(socket));
+	var user;
+	user = new User(socket, this.io);
 };
 
-var User = function(socket){
-	this.id = socket.id;
+var User = function(socket, io){
 	this.socket = socket;
+	this.io = io;
+	var address = socket.handshake.address;
+	console.log('New connection from ' + address + ':' + socket.id);
+	this.socket.on('disconnect', this.disconnect);
+	this.socket.on('init user', this.initUser);
+	this.socket.on('change name', this.changeName);
+	this.socket.on('join room', this.joinRoom);
+	this.socket.on('leave room', this.leaveRoom);
 };
 
 User.prototype.initUser = function(name){
+	var self = this;
 	this.name = name;
-	this.socket.join('cah-lobby');
+	this.join('cah-lobby');
+	redis.initUser({
+		id: this.id,
+		name: this.name,
+	});
+	setTimeout(function(){
+		redis.getRoom('cah-lobby', function(err,res){
+		console.log('getting Room', res);
+		self.emit('init user success', utils.convertObjectNameToArray(res));
+	})},200);
+};
+
+User.prototype.joinRoom = function(name) {
+	var socket = this.socket;
+	socket.join(name);
+	//TOTOTOTDO
+};
+
+User.prototype.leaveRoom = function(){
 
 };
 
-function createUser(name){
-	this.name = name;
-	this.room = 'lobby';
-	rooms.lobby[name] = this;
-	this.emit('lobby user list', Object.keys(rooms.lobby));
-}	
+User.prototype.changeName = function(){
+
+};
+
+User.prototype.disconnect = function(){
+
+};
 
 function joinRoom(room){
 	if (rooms.hasOwnProperty(room)){

@@ -1,6 +1,5 @@
 var should = require('chai').should();
 var io = require('socket.io-client');
-
 var SOCKET_URL = 'http://0.0.0.0:3000';
 
 var user1 = {
@@ -17,6 +16,17 @@ var options ={
 };
 
 describe("CAH User",function(){
+	it ('Should be able to init user ', function(done){
+		var client1 = io.connect(SOCKET_URL, options);
+		client1.on('connect', function(data){
+			client1.emit('init user', user1.name);
+			client1.on('init user success', function(users){
+				setTimeout(function(){users.should.include(user1.name)},200);
+				done();
+			});
+		});
+	});
+
 	it('Should be able to be created and join a room', function(done){
 		var client1 = io.connect(SOCKET_URL,options);
 		client1.on('connect', function(data){

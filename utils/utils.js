@@ -8,5 +8,13 @@ module.exports = {
             }
         }
         return res;
+    },
+    convertObjectNameToArray: function(obj) {
+        var result = [];
+        console.log(obj);
+        for (var key in obj) {
+            result.push(obj[key]);
+        }
+        return result;
     }
 };
