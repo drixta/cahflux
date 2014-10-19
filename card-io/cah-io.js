@@ -1,42 +1,73 @@
 const utils = require('../utils/utils');
 const cardsdb = require('../utils/cardsdb');
-var io = require('../server');
+var redis = require('./cah-redis.js');
 /*
 	STATUS
-	Wait for at least 4 players -> chose B players -> B player draws a black card -> W players put in cards within 30 seconds
+	Wait for at least 4 players -> choose B players -> B player draws a black card -> W players put in cards within 30 seconds
 	-> everyone sees the card -> B player choose the card in 1 minute -> A W player gain a point and card-> Choose next B player
 
+	CONST_STATUS =
+	{
+		0: wait for 4 player
+		2: wait for W players put cards for 3 seconds
+		3: wait for B player to pick a card
+		4: wait for timeout for gaining points and card and choosing next B player
+	}
+	Every time the room change status, check all clients are ready
+	Each status has its own data structure to manage the state of the game:
+
+	For example:
+		0: {
+			status: {
+				stage: CONST_STATUS['0'],
+				wait: true,
+				readyPlayers: 3
+			}
+		}
+		1: {
+			status: {
+				stage: CONST_STATUS['0']
+			}
+		}
+
 	data structure
-	rooms = {
-		lobby: {
-			'Bob' : socketInfo,
-			'Jill': socketInfo
-		},
-		111999: {
-			users : {
-				'Bob' : socketInfo,
-				'Jill': socketInfo
-			},
-			white: [],
-			black: [],
-			status: ''
-		},
-		222999: {
-			users : {
-				'Bob' : socketInfo,
-				'Jill': socketInfo
-			},
-			white: [],
-			black: [],
-			status: ''
+	users : {
+		1: {
+			name : '',
+			room: '',
+			bcard: [], //exist when users is not in lobby
+			
+		}
+	}
+	rooms : {
+		['name'] : {
+			users: ['id1','id2','id3'];
+			Wcards: ['id1','id2','id3'];
+			Qcards: ['id1','id2','id3'];
+			usedCards: ['id1','id2','id3'];
+			state: 0,1,2,3,4,5
+			time: null
+			readyCount: null
+		}
+		cah-lobby: {
+			users: ['id1','id2','id3']
 		}
 	}
 */
-var rooms = {
-	lobby: {}
+
+var CahIo = function(options){
+	var self = this;
+	self.io = options.io;
+	redis = options.redis;
 };
 
-function main(socket) {
+CahIo.prototype.init = function(){
+	this.io.on('connection',function(socket){
+		this.main(socket);
+	});
+};
+
+CahIo.prototype.main = function(socket){
 	var address = socket.handshake.address;
 	console.log('New connection from ' + address + ':' + socket.id);
 	socket.on('create user', createUser.bind(socket));
@@ -44,14 +75,25 @@ function main(socket) {
 	socket.on('leave room', leaveRoom.bind(socket));
 	socket.on('disconnect', disconnect.bind(socket));
 	socket.on('change name', changeName.bind(socket));
-}
+};
+
+var User = function(socket){
+	this.id = socket.id;
+	this.socket = socket;
+};
+
+User.prototype.initUser = function(name){
+	this.name = name;
+	this.socket.join('cah-lobby');
+
+};
 
 function createUser(name){
 	this.name = name;
 	this.room = 'lobby';
 	rooms.lobby[name] = this;
 	this.emit('lobby user list', Object.keys(rooms.lobby));
-}
+}	
 
 function joinRoom(room){
 	if (rooms.hasOwnProperty(room)){
@@ -73,6 +115,9 @@ function joinRoom(room){
 }
 
 function getRoomInfo(room){
+	if (rooms[room]) {
+		this.emit('room status')
+	}
 }
 
 function createDefaultRoom(room){
@@ -134,4 +179,4 @@ function disconnect(){
 	}
 	console.log(this.name + ' has disconnected and left room:' + this.room);
 }
-module.exports = main;
+module.exports = CahIo;

@@ -79,9 +79,15 @@ describe("CAH User",function(){
 	it('Should be able to get room information when enter a new room');
 });
 
-describe("Game play test",function(){
+describe("Game play phase",function(){
 	it('Should be waiting if there\'s not enough people in the room');
 	it('Should not be able to select a card when there\'s not enough people in the room');
 	it('Should have a B person selected when there are enough people in the room');
-	it('Should be waiting for W players to play their cards when B card is shown');
+	it('Should let W players play a card when in the W playable status');
+	it('Should have "play W card status" when B card is shown');
+	it('Should end W playable status after 30 seconds when not all players chose their card');
+	it('Should end W playable status when all players played a card');
+	it('By 30 seconds W players who didn\'t play a card will have a random card selected');
+	it('Should require everyone in the room to play W before status complete');
+	it('Should be able to complete when people leave in the middle of the play');
 });
