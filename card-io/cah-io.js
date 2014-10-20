@@ -81,14 +81,13 @@ var User = function(socket, io){
 	this.socket.on('change name', this.changeName);
 	this.socket.on('join room', this.joinRoom);
 	this.socket.on('leave room', this.leaveRoom);
-	this.socket.on('room info', this.getRoom);
 };
 
 User.prototype.getRoom = function(name){
 	var self = this;
-	var promise;
 	var result;
 	redis.getRoom(name, function(err, res){
+		console.log('server get room:' + name);
 		result = utils.convertObjectNameToArray(res.users);
 		self.emit('room response', result);
 	});
@@ -96,20 +95,33 @@ User.prototype.getRoom = function(name){
 
 User.prototype.initUser = function(name){
 	var self = this;
+	this.leave(this.id);
 	this.join('cah-lobby');
+	this.room = 'cah-lobby';
+	this.name = name;
 	redis.initUser({
-		id: this.id,
+		id: self.id,
 		name: name,
 	});
 };
 
 User.prototype.joinRoom = function(name) {
+	var self = this;
+	this.emit('leave room');
+	console.log('Join room:' +name);
+	redis.joinRoom({
+		id: self.id,
+		name: self.name
+	}, name);
 	this.join(name);
-	//TOTOTOTDO
+	this.room = name;
 };
 
 User.prototype.leaveRoom = function(){
-
+	redis.leaveRoom({
+		id: this.id,
+	}, this.rooms[0]);
+	this.leave(this.rooms[0]);
 };
 
 User.prototype.changeName = function(){
@@ -117,7 +129,14 @@ User.prototype.changeName = function(){
 };
 
 User.prototype.disconnect = function(){
-
+	redis.disconnect(this.id);
+	if (!this.room) {
+		return;
+	}
+	redis.leaveRoom({
+		id: this.id
+	}, this.room);
+	console.log('User '+ this.id +' with name '+ this.name +' has disconnected');
 };
 
 /*function joinRoom(room){

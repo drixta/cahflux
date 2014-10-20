@@ -23,5 +23,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/drixta/cahflux"
+  },
+  "devDependencies": {
+    "redis-jsonify": "0.0.4"
   }
 }

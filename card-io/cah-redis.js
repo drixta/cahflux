@@ -1,34 +1,33 @@
 const redis = require('redis');
+const jsonify = require('redis-jsonify');
 
 var standardCallback = function(err,res) {
 	if (err) 
 		throw err;
 	else 
-		console.log(res);
 		return res;
 };
 
 var CahRedis = function(){
-	this.client = redis.createClient();
+	this.client = jsonify(redis.createClient());
+	this.client.flushall();
 };
 
 CahRedis.prototype.init = function() {
 	this.createLobby();
 };
 CahRedis.prototype.createLobby = function() {
-	this.client.hset('rooms', 'cah-lobby', '{"users": {}}', function(err,res){
-		return standardCallback(err,res);
-	});
+	this.client.hset('rooms', 'cah-lobby', {users: {}}, redis.print);
 };
 //Rooms
 
 CahRedis.prototype.getRoom = function(name, callback) {
 	this.client.hget('rooms', name, function(err,res){
 		if (typeof callback === 'function'){
-			callback(err,JSON.parse(res));
+			callback(err,res);
 		}
 		else {
-			standardCallback(err,JSON.parse(res));
+			redis.print(err,res);
 		}
 	});
 };
@@ -36,17 +35,16 @@ CahRedis.prototype.getRoom = function(name, callback) {
 CahRedis.prototype.createRoom = function(name, callback) {
 	var result;
 	defaultRoom = {
-		users: [],
-		WCards: [],
-		QCards: [],
-		used_cards: [],
+		users: {},
+		WCards: {},
+		QCards: {},
+		used_cards: {},
 		state: 0,
 		count_down: undefined,
 		ready_count: 0
 	};
-	defaultRoom = JSON.stringify(defaultRoom);
 	this.client.hset('rooms', name, defaultRoom, function(err, res){
-		standardCallback(err, res);
+		redis.print(err, res);
 	});
 };
 
@@ -59,10 +57,7 @@ CahRedis.prototype.addUserToLobby = function(room, id, name){
 		}
 		if (res.users[id] === null || 'undefined' === typeof res.users[id]) {
 			res.users[id] = name;
-			result = JSON.stringify(res);
-			self.client.hset('rooms', 'cah-lobby', result, function(err,res){
-				standardCallback(err,res);
-			});
+			self.client.hset('rooms', 'cah-lobby', res, redis.print);
 		}
 		else {
 			throw new Error('User with id' + id + ' already exist in the game');
@@ -75,10 +70,10 @@ CahRedis.prototype.addUserToLobby = function(room, id, name){
 CahRedis.prototype.getUser = function(id,callback){
 	this.client.hget('users', id, function(err, res){
 		if (typeof callback === 'function') {
-			callback(err,JSON.parse(res));
+			callback(err,res);
 		}
 		else {
-			standardCallback(err,JSON.parse(res));
+			redis.print(err,res);
 		}
 	});
 };
@@ -87,24 +82,22 @@ CahRedis.prototype.initUser = function(user, callback){
 	var req = {
 		name: user.name,
 	};
-	this.client.hset('users', user.id, JSON.stringify(req), function(err, res){
-		standardCallback(err, res);
-	});
+	this.client.hset('users', user.id, req, redis.print);
 	this.addUserToLobby('cah-lobby',user.id, user.name);
 };
 
 CahRedis.prototype.joinRoom = function(user, room) {
 	var self = this;
 	this.getRoom(room, function(err, res){
-		var response = JSON.parse(res);
-		if (response) {
-			response.users[user.id] = user.name;
-			self.client.hset('rooms', room, JSON.stringify(response), standardCallback);
+		debugger;
+		if (res) {
+			res.users[user.id] = user.name;
+			self.client.hset('rooms', room, res, redis.print);
 		}
 		else {
 			self.createRoom(room, function(err, res){
-				response.users[user.id] = user.name;
-				self.client.hset('rooms', room, JSON.stringify(response), standardCallback);
+				res.users[user.id] = user.name;
+				self.client.hset('rooms', room, res, redis.print);
 			});
 		}
 	});
@@ -113,21 +106,29 @@ CahRedis.prototype.joinRoom = function(user, room) {
 CahRedis.prototype.leaveRoom = function(user,room) {
 	var self = this;
 	this.getRoom(room, function(err, res){
-		var response = JSON.parse(res);
 		var count = 0;
-		if (response && response.users[user.id]) {
-			response.users[user.id] = undefined;
+		if (res && res.users[user.id]) {
+			res.users[user.id] = undefined;
 		}
-		for (var i in response.users) {
-			if(response.users[i]) {
+		for (var i in res.users) {
+			if(res.users[i]) {
 				count++;
 			}
 		}
 		if (count === 0 && room !== 'cah-lobby') {
-			self.hdel('rooms', room, standardCallback);
+			self.client.hdel('rooms', room, redis.print);
 		}
 		else {
-			self.hset('rooms', room, JSON.stringify(response), standardCallback);
+			self.client.hset('rooms', room, res, redis.print);
+		}
+	});
+};
+
+CahRedis.prototype.disconnect = function(id) {
+	var self = this;
+	this.getUser(id, function(err,res){
+		if (res) {
+			self.client.hdel('users', id, res.print);
 		}
 	});
 };
@@ -141,10 +142,7 @@ CahRedis.prototype.changeName = function(user) {
 		else {
 			throw new Error('User id ' + user.id + ' not found');
 		}
-		result = JSON.stringify(res);
-		this.client.hset('users', user.id, result, function(err, res){
-			return standardCallback(err,res);
-		});
+		this.client.hset('users', user.id, res, redis.print);
 	});
 };
 //TODO createUser, getUser, getUserGroup etc.
