@@ -28,12 +28,14 @@ describe("CAH User",function(){
 				client1.emit('get room', 'cah-lobby');
 				client1.on('room response', function(res){
 					res.should.include(user1.name);
+					client1.disconnect();
+					client2.disconnect();
 					done();
 				});
-			},200);
+			},20);
 		});
 	});
-	/*it('Should be able to be created and join a room', function(done){
+	it('Should be able to be created and join a room', function(done){
 		client1.on('connect', function(data){
 			client1.emit('init user', user1.name);
 			client1.emit('join room', user1.room);
@@ -42,11 +44,12 @@ describe("CAH User",function(){
 				client1.on('room response', function(users){
 					users.should.include(user1.name);
 					client1.disconnect();
+					client2.disconnect();
 					done();
 				});
-			},1);
+			},20);
 		});
-	});
+	});/*
 	it('Should be able to see another user join the lobby', function(done){
 		client1.on('connect', function(data){
 			client1.emit('init user', user1.name);

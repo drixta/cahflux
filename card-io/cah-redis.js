@@ -44,7 +44,13 @@ CahRedis.prototype.createRoom = function(name, callback) {
 		ready_count: 0
 	};
 	this.client.hset('rooms', name, defaultRoom, function(err, res){
-		redis.print(err, res);
+		console.log('Create room callback 1:' + res);
+		if (typeof callback === 'function'){
+			callback(err,res);
+		}
+		else {
+			redis.print(err,res);
+		}		
 	});
 };
 
@@ -89,14 +95,17 @@ CahRedis.prototype.initUser = function(user, callback){
 CahRedis.prototype.joinRoom = function(user, room) {
 	var self = this;
 	this.getRoom(room, function(err, res){
-		debugger;
+		console.log('Join room:'+ room);
+		console.log('Get room:'+ res);
 		if (res) {
 			res.users[user.id] = user.name;
 			self.client.hset('rooms', room, res, redis.print);
 		}
 		else {
-			self.createRoom(room, function(err, res){
+			self.createRoom(room);
+			self.getRoom(room, function(err, res){
 				res.users[user.id] = user.name;
+				console.log('Create room callback:' + res);
 				self.client.hset('rooms', room, res, redis.print);
 			});
 		}

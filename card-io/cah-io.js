@@ -88,6 +88,7 @@ User.prototype.getRoom = function(name){
 	var result;
 	redis.getRoom(name, function(err, res){
 		console.log('server get room:' + name);
+		console.log(res);
 		result = utils.convertObjectNameToArray(res.users);
 		self.emit('room response', result);
 	});
@@ -108,7 +109,6 @@ User.prototype.initUser = function(name){
 User.prototype.joinRoom = function(name) {
 	var self = this;
 	this.emit('leave room');
-	console.log('Join room:' +name);
 	redis.joinRoom({
 		id: self.id,
 		name: self.name
