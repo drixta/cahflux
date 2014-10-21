@@ -49,19 +49,21 @@ describe("CAH User",function(){
 				});
 			},20);
 		});
-	});/*
+	});
 	it('Should be able to see another user join the lobby', function(done){
 		client1.on('connect', function(data){
 			client1.emit('init user', user1.name);
 			client2.on('connect', function(data){
 				client2.emit('init user', user2.name);
-				client1.emit('get room', 'cah-lobby');
-				client1.on('room response', function(users){
-					users.should.include(user2.name);
-					client1.disconnect();
-					client2.disconnect();
-					done();
-				});
+				setTimeout(function(){
+					client1.emit('get room', 'cah-lobby');
+					client1.on('room response', function(users){
+						users.should.include(user2.name);
+						client1.disconnect();
+						client2.disconnect();
+						done();
+					});
+				},20);
 			});
 		});
 	});
@@ -73,42 +75,49 @@ describe("CAH User",function(){
 			client2.on('connect', function(data){
 				client2.emit('init user', user2.name);
 				client2.emit('join room', user2.room);
-				client1.emit('get room', 'cah-lobby');
-				client1.on('room response', function(users){
-					users.should.include(user2.name);
-					client1.disconnect();
-					client2.disconnect();
-					done();
-				});
-			});
-		});
-	});*/
-	/*
-	it('Should be able to leave the room and reenter a new room', function(done){
-		var client1 = io.connect(SOCKET_URL, options);
-		client1.on('connect', function(data){
-			client1.emit('create user', user1.name);
-			client1.emit('join room', user1.room);
-
-			client1.on('room user list', function(users){
-
-				users.should.include(user1.name);
-				client1.emit('leave room', user1.room);
-
-				client1.on('lobby user list', function(users){
-
-					users.should.include(user1.name);
-					client1.emit('join room', user1.room);
-
-					client1.on('room user list', function(users){
-						users.should.include(user1.name);
+				setTimeout(function(){
+					client1.emit('get room', 'cah-lobby');
+					client1.on('room response', function(users){
+						users.should.include(user2.name);
 						client1.disconnect();
+						client2.disconnect();
 						done();
 					});
-				});
+				},50);
 			});
 		});
 	});
+
+	it('Should be able to leave the room and reenter a new room', function(done){
+		client1.on('connect', function(data){
+			client1.emit('init user', user1.name);
+			client1.emit('join room', user1.room);
+			setTimeout(function(){
+				client1.emit('get room', user1.room);
+				client1.on('room response', function(users){
+					users.should.include(user1.name);
+					client1.emit('leave room', user1.room);
+					setTimeout(function(){
+						client1.emit('get room', user1.room);
+						client1.on('room response', function(users){
+							users.should.include(user1.name);
+							client1.emit('join room', user1.room);
+							setTimeout(function(){
+								client1.emit('get room', user1.room);
+								client1.on('room response', function(users){
+									users.should.include(user1.name);
+									client1.disconnect();
+									client2.disconnect();
+									done();
+								});
+							},20);
+						});
+					},20);
+				});
+			},20);
+		});
+	});
+	/*
 	it('Should be able to get room information when enter a new room');
 	*/
 });

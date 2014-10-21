@@ -87,8 +87,6 @@ User.prototype.getRoom = function(name){
 	var self = this;
 	var result;
 	redis.getRoom(name, function(err, res){
-		console.log('server get room:' + name);
-		console.log(res);
 		result = utils.convertObjectNameToArray(res.users);
 		self.emit('room response', result);
 	});

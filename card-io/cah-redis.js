@@ -1,6 +1,5 @@
 const redis = require('redis');
 const jsonify = require('redis-jsonify');
-
 var standardCallback = function(err,res) {
 	if (err) 
 		throw err;
@@ -17,7 +16,10 @@ CahRedis.prototype.init = function() {
 	this.createLobby();
 };
 CahRedis.prototype.createLobby = function() {
-	this.client.hset('rooms', 'cah-lobby', {users: {}}, redis.print);
+	var defaultInput  = {
+		users: {}
+	};
+	this.client.hsetnx('rooms', 'cah-lobby', defaultInput, redis.print);
 };
 //Rooms
 
@@ -32,7 +34,7 @@ CahRedis.prototype.getRoom = function(name, callback) {
 	});
 };
 
-CahRedis.prototype.createRoom = function(name, callback) {
+CahRedis.prototype.createRoom = function(name) {
 	var result;
 	defaultRoom = {
 		users: {},
@@ -43,21 +45,13 @@ CahRedis.prototype.createRoom = function(name, callback) {
 		count_down: undefined,
 		ready_count: 0
 	};
-	this.client.hset('rooms', name, defaultRoom, function(err, res){
-		console.log('Create room callback 1:' + res);
-		if (typeof callback === 'function'){
-			callback(err,res);
-		}
-		else {
-			redis.print(err,res);
-		}		
-	});
+	defaultRoom = defaultRoom;
+	this.client.hset('rooms', name, defaultRoom);
 };
 
 CahRedis.prototype.addUserToLobby = function(room, id, name){
 	var self = this;
 	this.getRoom('cah-lobby', function(err, res){
-		var result;
 		if (err) {
 			throw err;
 		}
@@ -95,8 +89,6 @@ CahRedis.prototype.initUser = function(user, callback){
 CahRedis.prototype.joinRoom = function(user, room) {
 	var self = this;
 	this.getRoom(room, function(err, res){
-		console.log('Join room:'+ room);
-		console.log('Get room:'+ res);
 		if (res) {
 			res.users[user.id] = user.name;
 			self.client.hset('rooms', room, res, redis.print);
@@ -105,7 +97,6 @@ CahRedis.prototype.joinRoom = function(user, room) {
 			self.createRoom(room);
 			self.getRoom(room, function(err, res){
 				res.users[user.id] = user.name;
-				console.log('Create room callback:' + res);
 				self.client.hset('rooms', room, res, redis.print);
 			});
 		}
@@ -118,6 +109,10 @@ CahRedis.prototype.leaveRoom = function(user,room) {
 		var count = 0;
 		if (res && res.users[user.id]) {
 			res.users[user.id] = undefined;
+		}
+		else {
+			console.log('Empty room:'+ room);
+			return;
 		}
 		for (var i in res.users) {
 			if(res.users[i]) {
@@ -144,7 +139,6 @@ CahRedis.prototype.disconnect = function(id) {
 
 CahRedis.prototype.changeName = function(user) {
 	this.getUser(user.id, function(err, res){
-		var result;
 		if (res) {
 			res.name = user.name;
 		}
