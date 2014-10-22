@@ -45,7 +45,7 @@ const cardsdb = require('../utils/cardsdb');
 			usedCards: ['id1','id2','id3'];
 			state: 0,1,2,3,4,5
 			time: null
-			readyCount: null
+			readyCount: null,
 		}
 		cah-lobby: {
 			users: {'id1': true,'id2': true,'id3': true}
@@ -87,6 +87,12 @@ User.prototype.getRoom = function(name){
 	var self = this;
 	var result;
 	redis.getRoom(name, function(err, res){
+		console.log('Checking Get Room IO:');
+		console.log(res);
+		if (!res) {
+			self.emit('room response', null);
+			return;
+		}
 		result = utils.convertObjectNameToArray(res.users);
 		self.emit('room response', result);
 	});
@@ -106,20 +112,27 @@ User.prototype.initUser = function(name){
 
 User.prototype.joinRoom = function(name) {
 	var self = this;
-	this.emit('leave room');
+	redis.leaveRoom({
+		id: this.id,
+	}, this.rooms[0], function(){
+		console.log('Leaving room because of joining room');
+	});
+	this.leave(this.room[0]);
+	this.room = name; //keep track when disconnect
+	this.join(name);
 	redis.joinRoom({
 		id: self.id,
 		name: self.name
 	}, name);
-	this.join(name);
-	this.room = name;
 };
 
 User.prototype.leaveRoom = function(){
 	redis.leaveRoom({
 		id: this.id,
 	}, this.rooms[0]);
-	this.leave(this.rooms[0]);
+	this.leave(this.rooms[0], function(){
+		console.log('Leaving room because of leaveRoom');
+	});
 };
 
 User.prototype.changeName = function(){
@@ -127,98 +140,13 @@ User.prototype.changeName = function(){
 };
 
 User.prototype.disconnect = function(){
-	redis.disconnect(this.id);
-	if (!this.room) {
-		return;
-	}
 	redis.leaveRoom({
 		id: this.id
 	}, this.room);
 	console.log('User '+ this.id +' with name '+ this.name +' has disconnected');
-};
-
-/*function joinRoom(room){
-	if (rooms.hasOwnProperty(room)){
-		if (rooms[room].users.hasOwnProperty(this.name)){
-			throw new Error('User with this name already exist in this room:' + this.name);
-		}
-		this.join(room);
-	}
-	else {
-		createDefaultRoom(room);
-		this.join(room);
-	}
-	this.room = room;
-	rooms[room].users[this.name] = this;
-	delete rooms.lobby[this.name];
-	console.log(this.name + ' joined room:' + this.room);
-	this.emit('room user list', Object.keys(rooms[room].users));
-	console.log(utils.findClientsSocket(io.io, this.room));
-}
-
-function getRoomInfo(room){
-	if (rooms[room]) {
-		this.emit('room status')
-	}
-}
-
-function createDefaultRoom(room){
-	var OPTION = {
-		users: {},
-		white: cardsdb.getNAmountOfCards(500, 'W'),
-		black: cardsdb.getNAmountOfCards(50, 'B'),
-		status: 'waiting for more players',
-	};
-	if (rooms.hasOwnProperty(room)) {
-		throw new Error('ERROR: Room '+ room+' exists');
-	}
-	rooms[room] = OPTION;
-}
-
-function leaveRoom(room){
-	if (rooms.hasOwnProperty(room) && rooms[room].users.hasOwnProperty(this.name)){
-		this.leave(room);
-		console.log(this.name + ' left room:' + room);
-		delete rooms[room].users[this.name];
-	}
-	else if (!Object.keys(rooms[room].users)) {
-		delete rooms[room];
-		console.log(room + ' is empty, removing room');
-	}
-	else {
-		throw new Error('Room does not exist or user does not exist');
-	}
-	this.room = 'lobby';
-	rooms.lobby[this.name] = this;
-	this.emit('lobby user list', Object.keys(rooms.lobby));
-}
-
-function changeName(name){
-	if (this.room === 'lobby'){
-		console.log(this.name + ' changed name to:' + name);
-		rooms[this.room][this.name] = name;
-		this.name = name;
-		this.emit('lobby user list', Object.keys(rooms.lobby));
-	}
-	else if (this.room) {
-		console.log('Can\'t change name while already in a room');
+	redis.disconnect(this.id);
+	if (!this.room) {
 		return;
 	}
-	else {
-		throw new Error('User isn\'t in any room, can\'t change name');
-	}
-}
-function disconnect(){
-	if (this.room === 'lobby'){
-		delete rooms.lobby[this.name];
-	}
-	else if (this.room && this.name){
-		this.leave(this.room);
-		delete rooms[this.room].users[this.name];
-	}
-	else {
-		throw new Error('This user doesn\'t have a room');
-	}
-	console.log(this.name + ' has disconnected and left room:' + this.room);
-}*/
+};
 module.exports = CahIo;

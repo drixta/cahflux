@@ -45,7 +45,21 @@ CahRedis.prototype.createRoom = function(name) {
 		count_down: undefined,
 		ready_count: 0
 	};
-	defaultRoom = defaultRoom;
+	this.client.hset('rooms', name, defaultRoom);
+};
+
+CahRedis.prototype.createGuestRoom = function() {
+	var result;
+	defaultRoom = {
+		users: {},
+		WCards: {},
+		QCards: {},
+		used_cards: {},
+		state: 0,
+		count_down: undefined,
+		ready_count: 0,
+		isGuest: true
+	};
 	this.client.hset('rooms', name, defaultRoom);
 };
 
@@ -111,7 +125,8 @@ CahRedis.prototype.leaveRoom = function(user,room) {
 			res.users[user.id] = undefined;
 		}
 		else {
-			console.log('Empty room:'+ room);
+			console.log(res, user.id);
+			console.log('User is not in this room:'+ room + JSON.stringify(res));
 			return;
 		}
 		for (var i in res.users) {
@@ -119,7 +134,9 @@ CahRedis.prototype.leaveRoom = function(user,room) {
 				count++;
 			}
 		}
+		console.log('Check to delete room:' + count + room);
 		if (count === 0 && room !== 'cah-lobby') {
+			console.log('Delete room count:' + count + room);
 			self.client.hdel('rooms', room, redis.print);
 		}
 		else {
@@ -134,6 +151,13 @@ CahRedis.prototype.disconnect = function(id) {
 		if (res) {
 			self.client.hdel('users', id, res.print);
 		}
+	});
+};
+
+CahRedis.prototype.getAllRoomKeys = function(){
+	var self = this;
+	this.client.hkeys('rooms', function(err,res){
+		console.log(res);
 	});
 };
 

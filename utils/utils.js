@@ -11,9 +11,14 @@ module.exports = {
     },
     convertObjectNameToArray: function(obj) {
         var result = [];
-        for (var key in obj) {
-            result.push(obj[key]);
+        if (obj === null){
+            return null;
         }
-        return result;
+        else {
+            for (var key in obj) {
+                result.push(obj[key]);
+            }
+            return result;
+        }
     }
 };
