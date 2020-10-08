@@ -13,7 +13,7 @@
     "gulp-plumber": "^0.6.5",
     "gulp-util": "^3.0.1",
     "hiredis": "^0.1.17",
-    "react": "^0.11.2",
+    "react": "^16.13.1",
     "reactify": "^0.14.0",
     "redis": "^0.12.1",
     "should": "^4.0.4",
